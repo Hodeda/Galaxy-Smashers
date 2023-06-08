@@ -1,5 +1,5 @@
 import React, { useContext, useState } from "react";
-import { Button, Modal, Table } from "react-bootstrap";
+/* import { Button, Modal, Table } from "react-bootstrap";*/
 import { authContext } from "../../context/authContext";
 
 const UserData = ({ user, rowNum, setShowUserModal, setSelectedUser }) => {

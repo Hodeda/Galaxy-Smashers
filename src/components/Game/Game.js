@@ -1,5 +1,7 @@
-import socket from '../Chat/Socket';
-import Phaser from "phaser";
+import Phaser from 'phaser';
+import io from 'socket.io-client';
+const socketServer = import.meta.env.VITE_SERVER;
+const socket = io(socketServer);
 
 class Game extends Phaser.Scene {
   constructor() {
@@ -18,42 +20,105 @@ class Game extends Phaser.Scene {
     this.load.image('sky', 'src/assets/space-bag.jpg');
   }
 
-  getDirectionFromKeyCode(keyCode) {
-    switch (keyCode) {
-      case 38:
-        return 'up';
-      case 40:
-        return 'down';
-      default:
-        return null;
-    }
+  createSocketListeners() {
+    socket.on('connect', () => {
+      console.log('Connected to server');
+
+      // Emit the 'joinGame' event to join a specific game room
+      const gameId = '1234';
+      socket.emit('joinGame', gameId);
+
+      // Listen for other players joining the game
+      socket.on('playerJoined', (playerId) => {
+        // Add the new player to the game
+        this.addPlayer(playerId);
+        console.log(playerId);
+      });
+
+      // Listen for game updates
+      socket.on('gameUpdate', (playerId, data) => {
+        // Update the game state based on the received data
+        /*         this.updateGameState(playerId, data);
+         */ console.log(data);
+      });
+
+      // Listen for other players leaving the game
+      socket.on('playerDisconnected', (playerId) => {
+        // Remove the disconnected player from the game
+        this.removePlayer(playerId);
+      });
+    });
   }
+
+  addPlayer(playerId) {
+    // Check if the player already exists
+    const existingPlayer = this.players.find(
+      (player) => player.id === playerId
+    );
+    if (existingPlayer) {
+      return;
+    }
+
+    // Create a new player and add it to the game
+    const { width, height } = this.game.canvas;
+    const remotePlayerKeys = this.input.keyboard.createCursorKeys();
+    const startPosition = { x: width - 50, y: height / 2 };
+    const newPlayer = this.createPlayer(
+      width - 50,
+      height / 2,
+      remotePlayerKeys,
+      startPosition
+    );
+    newPlayer.id = playerId;
+    this.players.push(newPlayer);
+
+    // Emit the 'playerJoined' event to the game room
+    const gameId = '1234';
+    // socket.emit('playerJoined', gameId, playerId);
+  }
+
+  removePlayer(playerId) {
+    // Find the index of the player to remove
+    const index = this.players.findIndex((player) => player.id === playerId);
+    if (index !== -1) {
+      // Remove the player from the game
+      this.players[index].destroy();
+      this.players.splice(index, 1);
+    }
+
+    /*     // Check if the player exists
+    if (this.players[playerId]) {
+      // Remove the player from the game
+      this.players[playerId].destroy();
+      delete this.players[playerId];
+    } */
+  }
+
+  /*   updateGameState(playerId, gameState) {
+    // Update the game state based on the received data
+    this.players.forEach((player) => {
+      const playerState = gameState.players[player.id];
+      if (playerState) {
+        player.x = playerState.x;
+        player.y = playerState.y;
+      }
+    });
+  } */
 
   create() {
     const { width, height } = this.game.canvas;
     this.add.image(width / 2, height / 2, 'sky').setDisplaySize(width, height);
     this.sound.play('rocky', { loop: true });
+    this.createSocketListeners();
 
     const localPlayerKeys = this.input.keyboard.createCursorKeys();
-    // send player movement to server
-    this.input.keyboard.on('keydown', (event) => {
-      const direction = this.getDirectionFromKeyCode(event.keyCode);
-      socket.emit('local-player-movement', direction);
+
+    // Create local player
+    const localPlayer = this.createPlayer(50, height / 2, localPlayerKeys, {
+      x: 50,
+      y: height / 2,
     });
-
-    this.players.push(
-      this.createPlayer(50, height / 2, localPlayerKeys, {
-        x: 50,
-        y: height / 2,
-      })
-    );
-
-    this.players.push(
-      this.createPlayer(width - 50, height / 2, null, {
-        x: width - 50,
-        y: height / 2,
-      })
-    );
+    this.players.push(localPlayer);
 
     const circle = this.add.circle(width / 2, height / 2, 15, 0xffffff);
     this.ball = this.physics.add.existing(circle, false);
@@ -81,6 +146,7 @@ class Game extends Phaser.Scene {
     player.body.setCollideWorldBounds(true);
     player.controls = keys;
     player.startPosition = startPosition;
+    player.id = socket.id;
     return player;
   }
 
@@ -129,22 +195,10 @@ class Game extends Phaser.Scene {
     }
     this.players.forEach((player, index) => {
       if (this.gameStarted) {
-        //AI movements
         if (!player.controls) {
-          /* let predictionFactor = 0.1; // This value can be tweaked
-          let futureBallY =
-            this.ball.y + this.ball.body.velocity.y * predictionFactor;
-          if (futureBallY < player.y && player.body.velocity.y > -this.speed) {
-            player.body.setVelocityY(player.body.velocity.y - this.speed * 0.1); // Easing factor applied
-          } else if (
-            futureBallY > player.y &&
-            player.body.velocity.y < this.speed
-          ) {
-            player.body.setVelocityY(player.body.velocity.y + this.speed * 0.1); // Easing factor applied
-          } */
-
           // receive player movement from server
-          socket.on('remote-player-movement', (direction) => {
+          socket.on('remote-player-movement', (playerId,direction) => {
+            console.log('sssssssssssssss')
             if (direction === 'down') {
               player.body.setVelocityY(this.speed);
             } else if (direction === 'up') {
@@ -160,6 +214,14 @@ class Game extends Phaser.Scene {
           } else {
             player.body.setVelocityY(0);
           }
+
+          // Emit the player's movement to the server
+          const direction = player.controls.up.isDown
+            ? 'up'
+            : player.controls.down.isDown
+            ? 'down'
+            : null;
+          socket.emit('player-movement', direction);
         }
       }
     });

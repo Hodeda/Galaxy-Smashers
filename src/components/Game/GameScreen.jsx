@@ -1,13 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import Phaser from 'phaser';
-import { SocketProvider, Chat } from '../Chat';
+import { SocketProvider, useSocket } from '../../services/socket';
 import StartScene from './StartScreen';
 import GameMode from './GameMode';
 import Game from './Game';
 import PlayerStats from './PlayerStats';
+import { Chat } from './chat';
 
 const GameScreen = () => {
   const [game, setGame] = useState(null);
+  /*   const { socket } = useSocket();
+  console.log(socket); */
 
   useEffect(() => {
     if (!game) {

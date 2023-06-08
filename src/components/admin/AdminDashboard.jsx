@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 // import "../components/componentStyles/admin.css";
 import UserData from "./UserData";
 import UserModal from "./UserModal";
-import { Button, Modal, Table } from "react-bootstrap";
+/* import { Button, Modal, Table } from "react-bootstrap"; */
 import { authContext } from "../../context/authContext";
 import "../../componentstyles/admin.css"
 import newAxios from "../Axios";

@@ -1,12 +1,11 @@
-import React, { useState } from "react";
-import { Modal, Button, Form } from "react-bootstrap";
+import React, { useState } from 'react';
+/* import { Modal, Button, Form } from "react-bootstrap"; */
 
 const UserModal = ({ user, onUpdate, setShowUserModal }) => {
   const [editMode, setEditMode] = useState(false);
   const [name, setName] = useState(user.name);
   const [email, setEmail] = useState(user.email);
   const [admin, setAdmin] = useState(user.admin);
-
 
   const handleEditClick = () => {
     setEditMode(true);
@@ -20,7 +19,6 @@ const UserModal = ({ user, onUpdate, setShowUserModal }) => {
       name: name,
       email: email,
       admin: admin,
-
     };
 
     // Call the onUpdate callback with the updated user data

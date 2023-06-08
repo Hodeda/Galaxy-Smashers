@@ -60,3 +60,6 @@ export const UserContext = ({children}) => {
     </authContext.Provider>
   )
 }
+
+
+export const useAuth = () => React.useContext(authContext)
